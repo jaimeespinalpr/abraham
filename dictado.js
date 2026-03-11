@@ -1,63 +1,63 @@
 const words = [
   {
-    word: "because",
-    sentence: "I studied early because I wanted a better grade.",
-    wrong: ["becouse", "becuase", "beacause"]
+    word: "biography",
+    sentence: "A biography tells the life story of a real person.",
+    wrong: ["biografy", "biograpy", "biographi"]
   },
   {
-    word: "friend",
-    sentence: "My best friend helps me practice English every day.",
-    wrong: ["freind", "frend", "friendd"]
-  },
-  {
-    word: "beautiful",
-    sentence: "The park looked beautiful after the rain.",
-    wrong: ["beautifull", "beutiful", "beatiful"]
-  },
-  {
-    word: "library",
-    sentence: "We went to the library to find a biography.",
-    wrong: ["libary", "librery", "librari"]
-  },
-  {
-    word: "journey",
-    sentence: "Her journey inspired everyone in class.",
-    wrong: ["jorney", "journy", "journei"]
-  },
-  {
-    word: "reflection",
-    sentence: "The memoir includes a reflection about personal growth.",
-    wrong: ["reflexion", "reflction", "reflecttion"]
+    word: "memoir",
+    sentence: "A memoir focuses on selected moments from the author's life.",
+    wrong: ["memior", "memoar", "memwar"]
   },
   {
     word: "narrative",
-    sentence: "A personal narrative tells a story from the writer's view.",
+    sentence: "A personal narrative shares an important personal experience.",
     wrong: ["narative", "narrtive", "narrativ"]
   },
   {
-    word: "challenge",
-    sentence: "Each challenge made the main character stronger.",
-    wrong: ["chalenge", "challange", "challeenge"]
+    word: "reflection",
+    sentence: "Reflection helps readers understand the lesson learned.",
+    wrong: ["reflexion", "reflction", "reflecttion"]
+  },
+  {
+    word: "perspective",
+    sentence: "Point of view affects the perspective of the story.",
+    wrong: ["perspetive", "perspectivee", "perspectiv"]
   },
   {
     word: "objective",
-    sentence: "A biography should stay objective and clear.",
+    sentence: "Biographies are usually more objective than personal narratives.",
     wrong: ["objektive", "objetive", "obyective"]
   },
   {
+    word: "subjective",
+    sentence: "A memoir can be subjective because it includes personal feelings.",
+    wrong: ["subjetive", "subjectiv", "subjektive"]
+  },
+  {
+    word: "chronological",
+    sentence: "Many biographies organize events in chronological order.",
+    wrong: ["cronological", "chronologicall", "chronoligical"]
+  },
+  {
+    word: "significant",
+    sentence: "Memoirs often focus on significant events and themes.",
+    wrong: ["signifigant", "significantt", "signifficant"]
+  },
+  {
     word: "experience",
-    sentence: "The author describes one important experience.",
+    sentence: "A personal narrative often describes one meaningful experience.",
     wrong: ["experiance", "expirience", "experiense"]
   },
   {
-    word: "memory",
-    sentence: "The memoir starts with a strong childhood memory.",
-    wrong: ["memmory", "memori", "mamory"]
+    word: "challenge",
+    sentence: "Life challenges are common elements in biographies.",
+    wrong: ["chalenge", "challange", "challeenge"]
   },
   {
-    word: "growth",
-    sentence: "Personal growth is a common theme in memoirs.",
-    wrong: ["groth", "growht", "growt"]
+    word: "theme",
+    sentence: "A clear theme helps connect ideas in a memoir.",
+    wrong: ["theam", "thme", "themee"]
   }
 ];
 
