@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abraham | English 12 Interactive Exam</title>
+  <title>Dictado | English Spelling Test</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;600;700&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="dictado.css" />
 </head>
 <body>
   <div class="ambient ambient-a" aria-hidden="true"></div>
@@ -18,9 +18,9 @@
 
   <main class="shell">
     <header class="hero">
-      <p class="eyebrow">English 12 - Unit 12.3</p>
-      <h1>Interactive Review Exam</h1>
-      <p class="subtitle">Biography, Memoir, and Personal Narrative</p>
+      <p class="eyebrow">English Class</p>
+      <h1>Dictado Spelling Test</h1>
+      <p class="subtitle">Listen to the word and choose the correct spelling.</p>
       <div class="identity-strip" aria-label="Exam context">
         <span class="identity-pill"><strong>School:</strong> Ines Maria Mendoza</span>
         <span class="identity-pill"><strong>Teacher:</strong> Mr. Galva</span>
@@ -38,11 +38,11 @@
           maxlength="60"
           autocomplete="name"
         />
-        <button id="start-btn" type="button">Start Exam</button>
+        <button id="start-btn" type="button">Start Dictation</button>
       </div>
-      <p class="meta">18 fill-in-the-blank questions with a selectable word bank. Score by attempts: 5, 3, 2, 1 (or 0 after more tries). Final grade is scaled to 60 points.</p>
+      <p class="meta">Click "Play Word" to hear each word. Use "Help" to reveal a sentence.</p>
       <div class="switch-row">
-        <a class="switch-link" href="dictado.html">Open Dictation Test</a>
+        <a class="switch-link" href="index.html">Back to Main Exam</a>
       </div>
     </section>
 
@@ -54,54 +54,37 @@
         </div>
         <div class="status-block">
           <span class="status-label">Question</span>
-          <strong id="progress-label">1 / 18</strong>
+          <strong id="progress-label">1 / 12</strong>
         </div>
         <div class="status-block">
-          <span class="status-label">Score / 60</span>
-          <strong id="score-label">0.0 / 60</strong>
+          <span class="status-label">Score</span>
+          <strong id="score-label">0</strong>
         </div>
-        <div class="status-block">
-          <span class="status-label">Time left</span>
-          <strong id="timer-label">20:00</strong>
-        </div>
-      </div>
-
-      <div class="progress-track" aria-hidden="true">
-        <div id="progress-fill" class="progress-fill"></div>
       </div>
 
       <article class="question-card">
-        <p id="question-section" class="question-section">Part A</p>
-        <h2 id="question-text"></h2>
-        <p id="question-points" class="question-points"></p>
-        <div class="answer-layout">
-          <div class="blank-panel">
-            <p class="blank-label">Sentence</p>
-            <p id="blank-sentence" class="blank-sentence"></p>
-          </div>
-          <aside class="word-bank" aria-label="Word bank">
-            <p class="word-bank-title">Word Bank</p>
-            <div id="options" class="options" role="group" aria-label="Answer choices"></div>
-          </aside>
+        <p class="question-section">Dictado</p>
+        <h2 id="question-text">Choose the correct spelling.</h2>
+
+        <div class="actions-row">
+          <button id="play-btn" type="button">Play Word</button>
+          <button id="help-btn" class="ghost" type="button">Help: Show Sentence</button>
         </div>
-        <p id="feedback-line" class="feedback neutral">
-          First correct attempt gives 5 points.
-        </p>
+
+        <p id="sentence-box" class="sentence-box hidden"></p>
+        <div id="options" class="options" role="group" aria-label="Word choices"></div>
+        <p id="feedback-line" class="feedback neutral">Pick the spelling you hear.</p>
       </article>
 
       <div class="nav-row">
-        <button id="prev-btn" class="ghost" type="button">Previous</button>
-        <button id="next-btn" type="button">Next</button>
+        <button id="next-btn" type="button" disabled>Next</button>
       </div>
     </section>
 
     <section id="result-screen" class="panel hidden">
-      <h2>Results</h2>
-      <p class="result-context">Ines Maria Mendoza | Mr. Galva | English Class</p>
+      <h2>Dictation Results</h2>
       <p id="score-line" class="result-line"></p>
-      <p id="scaled-line" class="result-line"></p>
       <p id="message-line" class="result-line"></p>
-      <p id="email-status" class="email-status pending hidden"></p>
       <div class="nav-row">
         <button id="retry-btn" type="button">Try Again</button>
       </div>
@@ -109,6 +92,6 @@
     </section>
   </main>
 
-  <script src="script.js"></script>
+  <script src="dictado.js"></script>
 </body>
 </html>
