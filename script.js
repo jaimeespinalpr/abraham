@@ -179,18 +179,18 @@ const questions = [
   {
     section: "Fill in the Blank",
     prompt: "17) Select the best word to complete the sentence.",
-    sentence: "Correct on first attempt gives {blank} raw points in this exam.",
-    options: ["2", "3", "5", "1"],
-    correctIndex: 2,
-    explanation: "The first correct attempt is always worth 5 raw points."
+    sentence: "A biography can be written while the subject is still {blank}.",
+    options: ["alive", "fictional", "silent", "anonymous"],
+    correctIndex: 0,
+    explanation: "Biographies are often published while the person is still alive."
   },
   {
     section: "Fill in the Blank",
     prompt: "18) Select the best word to complete the sentence.",
-    sentence: "Your final grade is automatically scaled to {blank} points.",
-    options: ["20", "40", "60", "100"],
-    correctIndex: 2,
-    explanation: "The raw score is converted to a final score out of 60."
+    sentence: "A personal narrative usually has a clear beginning, middle, and {blank}.",
+    options: ["end", "index", "equation", "caption"],
+    correctIndex: 0,
+    explanation: "Like other narratives, personal narratives follow a complete story structure."
   }
 ];
 
