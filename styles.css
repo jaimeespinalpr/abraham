@@ -1,0 +1,79 @@
+:root {
+  --bg1: #f7f3e8;
+  --bg2: #dce9f5;
+  --card: #ffffffcc;
+  --text: #232323;
+  --accent: #0f5c5f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  display: grid;
+  place-items: center;
+}
+
+.app {
+  width: min(92vw, 460px);
+}
+
+header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.1rem;
+}
+
+p {
+  margin: 0.25rem 0 0;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid #ffffff;
+  border-radius: 18px;
+  padding: 1.2rem;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.count {
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.7rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
