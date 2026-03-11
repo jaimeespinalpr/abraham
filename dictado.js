@@ -61,6 +61,18 @@ const words = [
   }
 ];
 
+const VOICE_NAME_HINTS = [
+  "natural",
+  "google us english",
+  "google english",
+  "microsoft aria",
+  "microsoft jenny",
+  "microsoft guy",
+  "samantha",
+  "alex",
+  "daniel"
+];
+
 const startScreen = document.getElementById("start-screen");
 const quizScreen = document.getElementById("quiz-screen");
 const resultScreen = document.getElementById("result-screen");
@@ -74,6 +86,9 @@ const questionText = document.getElementById("question-text");
 const optionsWrap = document.getElementById("options");
 const sentenceBox = document.getElementById("sentence-box");
 const feedbackLine = document.getElementById("feedback-line");
+const voiceSelect = document.getElementById("voice-select");
+const spellToggle = document.getElementById("spell-toggle");
+const voiceNote = document.getElementById("voice-note");
 
 const scoreLine = document.getElementById("score-line");
 const messageLine = document.getElementById("message-line");
@@ -92,7 +107,9 @@ const state = {
   answers: words.map(() => null),
   helpUsed: words.map(() => false),
   shuffledOptions: words.map(() => []),
-  finished: false
+  finished: false,
+  selectedVoiceUri: "",
+  speechToken: 0
 };
 
 function shuffleArray(items) {
@@ -116,37 +133,181 @@ function loadQuestionOptions(index) {
   state.shuffledOptions[index] = shuffleArray(allChoices);
 }
 
-function getEnglishVoice() {
-  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-  const preferred = voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith("en-us"));
-  if (preferred) {
-    return preferred;
+function setVoiceNote(text) {
+  if (voiceNote) {
+    voiceNote.textContent = text;
   }
-
-  return voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith("en")) || null;
 }
 
-function speakText(text, rate = 0.9) {
-  if (!window.speechSynthesis) {
+function getSpeechEngine() {
+  return window.speechSynthesis || null;
+}
+
+function getEnglishVoices() {
+  const engine = getSpeechEngine();
+  if (!engine) {
+    return [];
+  }
+
+  return engine.getVoices().filter((voice) => {
+    const lang = (voice.lang || "").toLowerCase();
+    return lang.startsWith("en");
+  });
+}
+
+function scoreVoice(voice) {
+  const name = (voice.name || "").toLowerCase();
+  const lang = (voice.lang || "").toLowerCase();
+  let score = 0;
+
+  if (lang === "en-us") {
+    score += 80;
+  } else if (lang.startsWith("en")) {
+    score += 35;
+  }
+
+  if (voice.localService) {
+    score += 10;
+  }
+
+  VOICE_NAME_HINTS.forEach((hint, index) => {
+    if (name.includes(hint)) {
+      score += 40 - index;
+    }
+  });
+
+  if (name.includes("enhanced")) {
+    score += 15;
+  }
+
+  return score;
+}
+
+function getRankedEnglishVoices() {
+  return getEnglishVoices().sort((a, b) => {
+    const scoreDiff = scoreVoice(b) - scoreVoice(a);
+    if (scoreDiff !== 0) {
+      return scoreDiff;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function getSelectedVoice() {
+  const voices = getRankedEnglishVoices();
+  if (voices.length === 0) {
+    return null;
+  }
+
+  if (state.selectedVoiceUri) {
+    const selected = voices.find((voice) => voice.voiceURI === state.selectedVoiceUri);
+    if (selected) {
+      return selected;
+    }
+  }
+
+  return voices[0];
+}
+
+function populateVoiceSelect() {
+  if (!voiceSelect) {
     return;
   }
 
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = rate;
-  utterance.pitch = 1;
+  const rankedVoices = getRankedEnglishVoices();
+  voiceSelect.innerHTML = "";
 
-  const voice = getEnglishVoice();
-  if (voice) {
-    utterance.voice = voice;
+  if (rankedVoices.length === 0) {
+    voiceSelect.disabled = true;
+    setVoiceNote("No English voices found. Your browser default voice will be used.");
+    return;
   }
 
-  window.speechSynthesis.speak(utterance);
+  voiceSelect.disabled = false;
+
+  rankedVoices.forEach((voice) => {
+    const option = document.createElement("option");
+    option.value = voice.voiceURI;
+    option.textContent = `${voice.name} (${voice.lang})`;
+    voiceSelect.appendChild(option);
+  });
+
+  const defaultVoice = getSelectedVoice() || rankedVoices[0];
+  state.selectedVoiceUri = defaultVoice.voiceURI;
+  voiceSelect.value = state.selectedVoiceUri;
+  setVoiceNote(`Using voice: ${defaultVoice.name} (${defaultVoice.lang})`);
+}
+
+function speakSegments(segments) {
+  const engine = getSpeechEngine();
+  if (!engine || segments.length === 0) {
+    return;
+  }
+
+  const voice = getSelectedVoice();
+  state.speechToken += 1;
+  const currentToken = state.speechToken;
+
+  engine.cancel();
+
+  const queue = segments.map((entry) => ({
+    text: entry.text,
+    rate: entry.rate ?? 0.82,
+    pitch: entry.pitch ?? 1,
+    volume: entry.volume ?? 1
+  }));
+
+  const speakNext = (index) => {
+    if (currentToken !== state.speechToken || index >= queue.length) {
+      return;
+    }
+
+    const item = queue[index];
+    const utterance = new SpeechSynthesisUtterance(item.text);
+    utterance.lang = voice ? voice.lang : "en-US";
+    utterance.rate = item.rate;
+    utterance.pitch = item.pitch;
+    utterance.volume = item.volume;
+
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.onend = () => {
+      setTimeout(() => speakNext(index + 1), 120);
+    };
+
+    utterance.onerror = () => {
+      setTimeout(() => speakNext(index + 1), 120);
+    };
+
+    engine.speak(utterance);
+  };
+
+  setTimeout(() => speakNext(0), 60);
+}
+
+function getSpellingAudioText(word) {
+  return word
+    .split("")
+    .map((char) => char.toUpperCase())
+    .join(" ");
 }
 
 function speakWord() {
   const entry = words[state.currentIndex];
-  speakText(entry.word, 0.75);
+  const segments = [
+    { text: "Listen carefully.", rate: 0.9 },
+    { text: `The word is ${entry.word}.`, rate: 0.72 },
+    { text: entry.word, rate: 0.68 }
+  ];
+
+  if (spellToggle && spellToggle.checked) {
+    segments.push({ text: `Spelling: ${getSpellingAudioText(entry.word)}.`, rate: 0.72 });
+  }
+
+  speakSegments(segments);
 }
 
 function showHelpSentence() {
@@ -154,7 +315,7 @@ function showHelpSentence() {
   state.helpUsed[state.currentIndex] = true;
   sentenceBox.textContent = `Hint sentence: ${entry.sentence}`;
   sentenceBox.classList.remove("hidden");
-  speakText(entry.sentence, 0.92);
+  speakSegments([{ text: entry.sentence, rate: 0.9 }]);
 }
 
 function updateScoreUI() {
@@ -337,6 +498,23 @@ function resetTest() {
   studentNameInput.focus();
 }
 
+function initializeVoiceSystem() {
+  const engine = getSpeechEngine();
+
+  if (!engine) {
+    if (voiceSelect) {
+      voiceSelect.disabled = true;
+    }
+    setVoiceNote("Speech is not supported in this browser. Try Chrome, Edge, or Safari.");
+    return;
+  }
+
+  populateVoiceSelect();
+  if (getRankedEnglishVoices().length === 0) {
+    setVoiceNote("Loading available English voices...");
+  }
+}
+
 startBtn.addEventListener("click", startTest);
 studentNameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -348,9 +526,20 @@ playBtn.addEventListener("click", speakWord);
 helpBtn.addEventListener("click", showHelpSentence);
 nextBtn.addEventListener("click", goNextQuestion);
 retryBtn.addEventListener("click", resetTest);
+if (voiceSelect) {
+  voiceSelect.addEventListener("change", () => {
+    state.selectedVoiceUri = voiceSelect.value;
+    const selected = getSelectedVoice();
+    if (selected) {
+      setVoiceNote(`Using voice: ${selected.name} (${selected.lang})`);
+    }
+  });
+}
 
 if (window.speechSynthesis) {
   window.speechSynthesis.onvoiceschanged = () => {
-    getEnglishVoice();
+    populateVoiceSelect();
   };
 }
+
+initializeVoiceSystem();

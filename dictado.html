@@ -70,6 +70,15 @@
           <button id="play-btn" type="button">Play Word</button>
           <button id="help-btn" class="ghost" type="button">Help: Show Sentence</button>
         </div>
+        <div class="voice-row">
+          <label class="voice-label" for="voice-select">Voice</label>
+          <select id="voice-select" class="voice-select" aria-label="English voice"></select>
+          <label class="spell-label" for="spell-toggle">
+            <input id="spell-toggle" type="checkbox" checked />
+            Spell after playback
+          </label>
+        </div>
+        <p id="voice-note" class="voice-note">Loading available English voices...</p>
 
         <p id="sentence-box" class="sentence-box hidden"></p>
         <div id="options" class="options" role="group" aria-label="Word choices"></div>

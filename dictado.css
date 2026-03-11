@@ -215,6 +215,45 @@ h2 {
   flex-wrap: wrap;
 }
 
+.voice-row {
+  margin-top: 0.78rem;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.voice-label {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.voice-select {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 0.62rem;
+  font-size: 0.9rem;
+  background: #fffef9;
+  color: var(--ink);
+}
+
+.spell-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.voice-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.85rem;
+  color: #475549;
+}
+
 button {
   border: 0;
   border-radius: 10px;
@@ -363,6 +402,11 @@ button.ghost {
 
   .options {
     grid-template-columns: 1fr;
+  }
+
+  .voice-row {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
   }
 
   .nav-row {
