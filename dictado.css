@@ -222,7 +222,7 @@ h2 {
 .voice-row {
   margin-top: 0.78rem;
   display: grid;
-  grid-template-columns: auto minmax(180px, 1fr) auto;
+  grid-template-columns: auto minmax(180px, 1fr);
   gap: 0.55rem;
   align-items: center;
 }
@@ -241,15 +241,6 @@ h2 {
   font-size: 0.9rem;
   background: #fffef9;
   color: var(--ink);
-}
-
-.spell-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.38rem;
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--ink-soft);
 }
 
 .voice-note {

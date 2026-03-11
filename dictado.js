@@ -88,7 +88,6 @@ const optionsWrap = document.getElementById("options");
 const sentenceBox = document.getElementById("sentence-box");
 const feedbackLine = document.getElementById("feedback-line");
 const voiceSelect = document.getElementById("voice-select");
-const spellToggle = document.getElementById("spell-toggle");
 const voiceNote = document.getElementById("voice-note");
 
 const scoreLine = document.getElementById("score-line");
@@ -436,13 +435,6 @@ function speakSegments(segments) {
   setTimeout(() => speakNext(0), 60);
 }
 
-function getSpellingAudioText(word) {
-  return word
-    .split("")
-    .map((char) => char.toUpperCase())
-    .join(" ");
-}
-
 function speakWord() {
   if (state.locked) {
     return;
@@ -454,10 +446,6 @@ function speakWord() {
     { text: `The word is ${entry.word}.`, rate: 0.72 },
     { text: entry.word, rate: 0.68 }
   ];
-
-  if (spellToggle && spellToggle.checked) {
-    segments.push({ text: `Spelling: ${getSpellingAudioText(entry.word)}.`, rate: 0.72 });
-  }
 
   speakSegments(segments);
 }
