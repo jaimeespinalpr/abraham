@@ -6,6 +6,7 @@ const TEACHER_NAME = "Mr. Galva";
 const CLASS_NAME = "English";
 const RESULT_EMAIL = "abrahamgalva@gmail.com";
 const RESULT_EMAIL_ENDPOINT = `https://formsubmit.co/ajax/${RESULT_EMAIL}`;
+const PROCTOR_CODES = ["2332", "5834", "8858"];
 
 const questions = [
   {
@@ -225,6 +226,12 @@ const startBtn = document.getElementById("start-btn");
 const prevBtn = document.getElementById("prev-btn");
 const nextBtn = document.getElementById("next-btn");
 const retryBtn = document.getElementById("retry-btn");
+const proctorLock = document.getElementById("proctor-lock");
+const proctorMessage = document.getElementById("proctor-message");
+const proctorUsage = document.getElementById("proctor-usage");
+const proctorCodeInput = document.getElementById("proctor-code-input");
+const proctorUnlockBtn = document.getElementById("proctor-unlock-btn");
+const proctorError = document.getElementById("proctor-error");
 
 function createQuestionState(optionCount) {
   return {
@@ -245,7 +252,9 @@ const state = {
   questionStates: questions.map((question) => createQuestionState(question.options.length)),
   secondsLeft: EXAM_MINUTES * 60,
   timerId: null,
-  finished: false
+  finished: false,
+  locked: false,
+  usedProctorCodes: []
 };
 
 let audioContext = null;
@@ -368,6 +377,110 @@ function setEmailStatus(text, tone, visible = true) {
   }
 
   emailStatus.classList.add(tone);
+}
+
+function isQuizActive() {
+  return !quizScreen.classList.contains("hidden") && !state.finished;
+}
+
+function remainingProctorCodes() {
+  return PROCTOR_CODES.filter((code) => !state.usedProctorCodes.includes(code));
+}
+
+function setProctorError(text, visible = true) {
+  if (!proctorError) {
+    return;
+  }
+
+  proctorError.textContent = text;
+  proctorError.classList.toggle("hidden", !visible);
+}
+
+function updateProctorUsageText() {
+  if (!proctorUsage) {
+    return;
+  }
+
+  const used = state.usedProctorCodes.length;
+  const total = PROCTOR_CODES.length;
+  const remaining = total - used;
+  proctorUsage.textContent = `Unlock codes used: ${used}/${total}. Remaining: ${remaining}.`;
+}
+
+function showProctorLock(reasonText) {
+  if (!proctorLock) {
+    return;
+  }
+
+  if (proctorMessage) {
+    proctorMessage.textContent = reasonText;
+  }
+
+  updateProctorUsageText();
+  setProctorError("", false);
+  proctorLock.classList.remove("hidden");
+
+  if (proctorCodeInput) {
+    proctorCodeInput.value = "";
+    proctorCodeInput.disabled = remainingProctorCodes().length === 0;
+  }
+
+  if (proctorUnlockBtn) {
+    proctorUnlockBtn.disabled = remainingProctorCodes().length === 0;
+  }
+
+  if (remainingProctorCodes().length === 0) {
+    setProctorError("No unlock codes remain. Ask the teacher for support.", true);
+  } else if (proctorCodeInput) {
+    setTimeout(() => {
+      proctorCodeInput.focus();
+    }, 0);
+  }
+}
+
+function hideProctorLock() {
+  if (proctorLock) {
+    proctorLock.classList.add("hidden");
+  }
+  setProctorError("", false);
+}
+
+function lockExamForLeavingPage(reasonText = "You left the exam page. Ask the teacher for an unlock code.") {
+  if (!isQuizActive() || state.locked) {
+    return;
+  }
+
+  state.locked = true;
+  stopTimer();
+  showProctorLock(reasonText);
+}
+
+function tryUnlockExam() {
+  if (!state.locked) {
+    return;
+  }
+
+  if (!proctorCodeInput) {
+    return;
+  }
+
+  const code = proctorCodeInput.value.trim();
+  if (!PROCTOR_CODES.includes(code)) {
+    setProctorError("Invalid code. Ask the teacher for a valid unlock code.", true);
+    return;
+  }
+
+  if (state.usedProctorCodes.includes(code)) {
+    setProctorError("This code was already used in this exam.", true);
+    return;
+  }
+
+  state.usedProctorCodes.push(code);
+  state.locked = false;
+  hideProctorLock();
+  playClickSound();
+  startTimer();
+  renderQuestion();
 }
 
 function compactText(text) {
@@ -505,6 +618,10 @@ questionCard.addEventListener("animationend", () => {
 });
 
 function startTimer() {
+  if (state.locked || state.finished || quizScreen.classList.contains("hidden")) {
+    return;
+  }
+
   stopTimer();
 
   state.timerId = setInterval(() => {
@@ -528,7 +645,7 @@ function selectOption(selectedIndex) {
   const question = questions[state.currentIndex];
   const questionState = state.questionStates[state.currentIndex];
 
-  if (state.finished || questionState.solved || questionState.eliminated[selectedIndex]) {
+  if (state.finished || state.locked || questionState.solved || questionState.eliminated[selectedIndex]) {
     return;
   }
 
@@ -601,7 +718,9 @@ function renderQuestion() {
     optionButton.className = "option";
     optionButton.textContent = option;
 
-    if (questionState.solved) {
+    if (state.locked) {
+      optionButton.disabled = true;
+    } else if (questionState.solved) {
       optionButton.disabled = true;
       if (index === question.correctIndex) {
         optionButton.classList.add("locked-correct", "selected");
@@ -620,8 +739,8 @@ function renderQuestion() {
     : getDefaultFeedback(questionState);
   setFeedbackUI(feedback.text, feedback.tone);
 
-  prevBtn.disabled = state.currentIndex === 0;
-  nextBtn.disabled = !questionState.solved;
+  prevBtn.disabled = state.locked || state.currentIndex === 0;
+  nextBtn.disabled = state.locked || !questionState.solved;
   nextBtn.textContent = state.currentIndex === questions.length - 1 ? "Finish" : "Next";
 }
 
@@ -667,7 +786,9 @@ function finishExam(timedOut) {
   }
 
   state.finished = true;
+  state.locked = false;
   stopTimer();
+  hideProctorLock();
   playFinishSound();
 
   const { rawScore, scaledScore, percent } = getFinalScores();
@@ -704,6 +825,9 @@ function startExam() {
   state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
   state.finished = false;
+  state.locked = false;
+  state.usedProctorCodes = [];
+  hideProctorLock();
 
   studentLabel.textContent = state.studentName;
   updateTimerDisplay();
@@ -722,9 +846,12 @@ function resetToStart() {
   setEmailStatus("", "pending", false);
 
   state.finished = false;
+  state.locked = false;
   state.currentIndex = 0;
   state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
+  state.usedProctorCodes = [];
+  hideProctorLock();
 
   studentNameInput.value = "";
   updateTimerDisplay();
@@ -745,6 +872,10 @@ studentNameInput.addEventListener("keydown", (event) => {
 });
 
 prevBtn.addEventListener("click", () => {
+  if (state.locked) {
+    return;
+  }
+
   if (state.currentIndex > 0) {
     playClickSound();
     state.currentIndex -= 1;
@@ -753,6 +884,10 @@ prevBtn.addEventListener("click", () => {
 });
 
 nextBtn.addEventListener("click", () => {
+  if (state.locked) {
+    return;
+  }
+
   if (state.currentIndex < questions.length - 1) {
     playClickSound();
     state.currentIndex += 1;
@@ -764,6 +899,28 @@ nextBtn.addEventListener("click", () => {
 });
 
 retryBtn.addEventListener("click", resetToStart);
+
+if (proctorUnlockBtn) {
+  proctorUnlockBtn.addEventListener("click", tryUnlockExam);
+}
+
+if (proctorCodeInput) {
+  proctorCodeInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      tryUnlockExam();
+    }
+  });
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    lockExamForLeavingPage("Exam paused: leaving the page is not allowed. Enter a teacher code to continue.");
+  }
+});
+
+window.addEventListener("blur", () => {
+  lockExamForLeavingPage("Exam paused: leaving the exam window is not allowed. Enter a teacher code to continue.");
+});
 
 updateTimerDisplay();
 updateScoreDisplay();

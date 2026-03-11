@@ -93,6 +93,27 @@
         <button id="prev-btn" class="ghost" type="button">Previous</button>
         <button id="next-btn" type="button">Next</button>
       </div>
+
+      <div id="proctor-lock" class="proctor-lock hidden" role="dialog" aria-modal="true">
+        <div class="proctor-card">
+          <h3>Exam Paused</h3>
+          <p id="proctor-message" class="proctor-message">
+            Security lock activated. Ask your teacher for an unlock code.
+          </p>
+          <p id="proctor-usage" class="proctor-usage"></p>
+          <div class="proctor-row">
+            <input
+              id="proctor-code-input"
+              type="password"
+              inputmode="numeric"
+              maxlength="4"
+              placeholder="Enter teacher code"
+            />
+            <button id="proctor-unlock-btn" type="button">Unlock</button>
+          </div>
+          <p id="proctor-error" class="proctor-error hidden"></p>
+        </div>
+      </div>
     </section>
 
     <section id="result-screen" class="panel hidden">

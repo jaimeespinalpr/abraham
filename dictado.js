@@ -72,6 +72,7 @@ const VOICE_NAME_HINTS = [
   "alex",
   "daniel"
 ];
+const PROCTOR_CODES = ["2332", "5834", "8858"];
 
 const startScreen = document.getElementById("start-screen");
 const quizScreen = document.getElementById("quiz-screen");
@@ -93,6 +94,12 @@ const voiceNote = document.getElementById("voice-note");
 const scoreLine = document.getElementById("score-line");
 const messageLine = document.getElementById("message-line");
 const reviewList = document.getElementById("review-list");
+const proctorLock = document.getElementById("proctor-lock");
+const proctorMessage = document.getElementById("proctor-message");
+const proctorUsage = document.getElementById("proctor-usage");
+const proctorCodeInput = document.getElementById("proctor-code-input");
+const proctorUnlockBtn = document.getElementById("proctor-unlock-btn");
+const proctorError = document.getElementById("proctor-error");
 
 const startBtn = document.getElementById("start-btn");
 const playBtn = document.getElementById("play-btn");
@@ -108,6 +115,8 @@ const state = {
   helpUsed: words.map(() => false),
   shuffledOptions: words.map(() => []),
   finished: false,
+  locked: false,
+  usedProctorCodes: [],
   selectedVoiceUri: "",
   speechToken: 0
 };
@@ -125,6 +134,113 @@ function setFeedback(text, tone) {
   feedbackLine.textContent = text;
   feedbackLine.classList.remove("neutral", "good", "bad");
   feedbackLine.classList.add(tone);
+}
+
+function isQuizActive() {
+  return !quizScreen.classList.contains("hidden") && !state.finished;
+}
+
+function remainingProctorCodes() {
+  return PROCTOR_CODES.filter((code) => !state.usedProctorCodes.includes(code));
+}
+
+function setProctorError(text, visible = true) {
+  if (!proctorError) {
+    return;
+  }
+
+  proctorError.textContent = text;
+  proctorError.classList.toggle("hidden", !visible);
+}
+
+function updateProctorUsageText() {
+  if (!proctorUsage) {
+    return;
+  }
+
+  const used = state.usedProctorCodes.length;
+  const total = PROCTOR_CODES.length;
+  const remaining = total - used;
+  proctorUsage.textContent = `Unlock codes used: ${used}/${total}. Remaining: ${remaining}.`;
+}
+
+function showProctorLock(reasonText) {
+  if (!proctorLock) {
+    return;
+  }
+
+  if (proctorMessage) {
+    proctorMessage.textContent = reasonText;
+  }
+
+  updateProctorUsageText();
+  setProctorError("", false);
+  proctorLock.classList.remove("hidden");
+
+  if (proctorCodeInput) {
+    proctorCodeInput.value = "";
+    proctorCodeInput.disabled = remainingProctorCodes().length === 0;
+  }
+
+  if (proctorUnlockBtn) {
+    proctorUnlockBtn.disabled = remainingProctorCodes().length === 0;
+  }
+
+  if (remainingProctorCodes().length === 0) {
+    setProctorError("No unlock codes remain. Ask the teacher for support.", true);
+  } else if (proctorCodeInput) {
+    setTimeout(() => {
+      proctorCodeInput.focus();
+    }, 0);
+  }
+}
+
+function hideProctorLock() {
+  if (proctorLock) {
+    proctorLock.classList.add("hidden");
+  }
+  setProctorError("", false);
+}
+
+function stopSpeaking() {
+  const engine = getSpeechEngine();
+  state.speechToken += 1;
+  if (engine) {
+    engine.cancel();
+  }
+}
+
+function lockTestForLeavingPage(reasonText = "Test paused: leaving the page is not allowed. Enter a teacher code to continue.") {
+  if (!isQuizActive() || state.locked) {
+    return;
+  }
+
+  state.locked = true;
+  stopSpeaking();
+  showProctorLock(reasonText);
+  renderQuestion();
+}
+
+function tryUnlockTest() {
+  if (!state.locked || !proctorCodeInput) {
+    return;
+  }
+
+  const code = proctorCodeInput.value.trim();
+  if (!PROCTOR_CODES.includes(code)) {
+    setProctorError("Invalid code. Ask the teacher for a valid unlock code.", true);
+    return;
+  }
+
+  if (state.usedProctorCodes.includes(code)) {
+    setProctorError("This code was already used in this test.", true);
+    return;
+  }
+
+  state.usedProctorCodes.push(code);
+  state.locked = false;
+  hideProctorLock();
+  renderQuestion();
 }
 
 function loadQuestionOptions(index) {
@@ -273,7 +389,7 @@ function populateVoiceSelect() {
 
 function speakSegments(segments) {
   const engine = getSpeechEngine();
-  if (!engine || segments.length === 0) {
+  if (state.locked || !engine || segments.length === 0) {
     return;
   }
 
@@ -328,6 +444,10 @@ function getSpellingAudioText(word) {
 }
 
 function speakWord() {
+  if (state.locked) {
+    return;
+  }
+
   const entry = words[state.currentIndex];
   const segments = [
     { text: "Listen carefully.", rate: 0.9 },
@@ -343,6 +463,10 @@ function speakWord() {
 }
 
 function showHelpSentence() {
+  if (state.locked) {
+    return;
+  }
+
   const entry = words[state.currentIndex];
   state.helpUsed[state.currentIndex] = true;
   sentenceBox.textContent = `Hint sentence: ${entry.sentence}`;
@@ -368,7 +492,7 @@ function renderOptions() {
     optionButton.textContent = optionText;
 
     const alreadyAnswered = selectedOption !== null;
-    if (alreadyAnswered) {
+    if (state.locked || alreadyAnswered) {
       optionButton.disabled = true;
 
       if (optionText === entry.word) {
@@ -381,7 +505,7 @@ function renderOptions() {
     }
 
     optionButton.addEventListener("click", () => {
-      if (state.answers[state.currentIndex] !== null) {
+      if (state.locked || state.answers[state.currentIndex] !== null) {
         return;
       }
 
@@ -410,7 +534,7 @@ function renderQuestion() {
   progressLabel.textContent = `${questionNumber} / ${total}`;
   questionText.textContent = `Word ${questionNumber}: Choose the correct spelling.`;
   nextBtn.textContent = questionNumber === total ? "Finish" : "Next";
-  nextBtn.disabled = state.answers[state.currentIndex] === null;
+  nextBtn.disabled = state.locked || state.answers[state.currentIndex] === null;
 
   if (state.helpUsed[state.currentIndex]) {
     sentenceBox.textContent = `Hint sentence: ${words[state.currentIndex].sentence}`;
@@ -420,7 +544,9 @@ function renderQuestion() {
     sentenceBox.textContent = "";
   }
 
-  if (state.answers[state.currentIndex] === null) {
+  if (state.locked) {
+    setFeedback("Test paused. Enter teacher code to continue.", "bad");
+  } else if (state.answers[state.currentIndex] === null) {
     setFeedback("Pick the spelling you hear.", "neutral");
   } else {
     const entry = words[state.currentIndex];
@@ -458,6 +584,9 @@ function buildReview() {
 
 function finishTest() {
   state.finished = true;
+  state.locked = false;
+  hideProctorLock();
+  stopSpeaking();
   const total = words.length;
   const percent = Math.round((state.score / total) * 100);
 
@@ -484,6 +613,9 @@ function startTest() {
   state.helpUsed = words.map(() => false);
   state.shuffledOptions = words.map(() => []);
   state.finished = false;
+  state.locked = false;
+  state.usedProctorCodes = [];
+  hideProctorLock();
 
   words.forEach((_, index) => {
     loadQuestionOptions(index);
@@ -501,7 +633,7 @@ function startTest() {
 }
 
 function goNextQuestion() {
-  if (state.answers[state.currentIndex] === null) {
+  if (state.locked || state.answers[state.currentIndex] === null) {
     return;
   }
 
@@ -516,12 +648,16 @@ function goNextQuestion() {
 }
 
 function resetTest() {
+  stopSpeaking();
   state.currentIndex = 0;
   state.score = 0;
   state.answers = words.map(() => null);
   state.helpUsed = words.map(() => false);
   state.shuffledOptions = words.map(() => []);
   state.finished = false;
+  state.locked = false;
+  state.usedProctorCodes = [];
+  hideProctorLock();
 
   studentNameInput.value = "";
   startScreen.classList.remove("hidden");
@@ -558,6 +694,17 @@ playBtn.addEventListener("click", speakWord);
 helpBtn.addEventListener("click", showHelpSentence);
 nextBtn.addEventListener("click", goNextQuestion);
 retryBtn.addEventListener("click", resetTest);
+if (proctorUnlockBtn) {
+  proctorUnlockBtn.addEventListener("click", tryUnlockTest);
+}
+
+if (proctorCodeInput) {
+  proctorCodeInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      tryUnlockTest();
+    }
+  });
+}
 if (voiceSelect) {
   voiceSelect.addEventListener("change", () => {
     state.selectedVoiceUri = voiceSelect.value;
@@ -577,5 +724,15 @@ if (window.speechSynthesis) {
     populateVoiceSelect();
   };
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    lockTestForLeavingPage("Test paused: leaving the page is not allowed. Enter a teacher code to continue.");
+  }
+});
+
+window.addEventListener("blur", () => {
+  lockTestForLeavingPage("Test paused: leaving the test window is not allowed. Enter a teacher code to continue.");
+});
 
 initializeVoiceSystem();
