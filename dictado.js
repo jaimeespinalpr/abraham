@@ -155,10 +155,19 @@ function getEnglishVoices() {
   });
 }
 
+function isGoogleVoice(voice) {
+  const name = (voice.name || "").toLowerCase();
+  return name.includes("google");
+}
+
 function scoreVoice(voice) {
   const name = (voice.name || "").toLowerCase();
   const lang = (voice.lang || "").toLowerCase();
   let score = 0;
+
+  if (isGoogleVoice(voice)) {
+    score += 1000;
+  }
 
   if (lang === "en-us") {
     score += 80;
@@ -183,8 +192,8 @@ function scoreVoice(voice) {
   return score;
 }
 
-function getRankedEnglishVoices() {
-  return getEnglishVoices().sort((a, b) => {
+function rankVoices(voices) {
+  return [...voices].sort((a, b) => {
     const scoreDiff = scoreVoice(b) - scoreVoice(a);
     if (scoreDiff !== 0) {
       return scoreDiff;
@@ -194,8 +203,25 @@ function getRankedEnglishVoices() {
   });
 }
 
+function getGoogleEnglishVoices() {
+  return rankVoices(getEnglishVoices().filter((voice) => isGoogleVoice(voice)));
+}
+
+function getRankedEnglishVoices() {
+  return rankVoices(getEnglishVoices());
+}
+
+function getSelectableVoices() {
+  const googleVoices = getGoogleEnglishVoices();
+  if (googleVoices.length > 0) {
+    return googleVoices;
+  }
+
+  return getRankedEnglishVoices();
+}
+
 function getSelectedVoice() {
-  const voices = getRankedEnglishVoices();
+  const voices = getSelectableVoices();
   if (voices.length === 0) {
     return null;
   }
@@ -215,7 +241,8 @@ function populateVoiceSelect() {
     return;
   }
 
-  const rankedVoices = getRankedEnglishVoices();
+  const rankedVoices = getSelectableVoices();
+  const googleVoices = getGoogleEnglishVoices();
   voiceSelect.innerHTML = "";
 
   if (rankedVoices.length === 0) {
@@ -236,7 +263,12 @@ function populateVoiceSelect() {
   const defaultVoice = getSelectedVoice() || rankedVoices[0];
   state.selectedVoiceUri = defaultVoice.voiceURI;
   voiceSelect.value = state.selectedVoiceUri;
-  setVoiceNote(`Using voice: ${defaultVoice.name} (${defaultVoice.lang})`);
+
+  if (googleVoices.length > 0) {
+    setVoiceNote(`Using Google voice: ${defaultVoice.name} (${defaultVoice.lang})`);
+  } else {
+    setVoiceNote(`Google voice not found in this browser. Using: ${defaultVoice.name} (${defaultVoice.lang})`);
+  }
 }
 
 function speakSegments(segments) {
@@ -531,7 +563,11 @@ if (voiceSelect) {
     state.selectedVoiceUri = voiceSelect.value;
     const selected = getSelectedVoice();
     if (selected) {
-      setVoiceNote(`Using voice: ${selected.name} (${selected.lang})`);
+      if (isGoogleVoice(selected)) {
+        setVoiceNote(`Using Google voice: ${selected.name} (${selected.lang})`);
+      } else {
+        setVoiceNote(`Google voice not found in this browser. Using: ${selected.name} (${selected.lang})`);
+      }
     }
   });
 }
