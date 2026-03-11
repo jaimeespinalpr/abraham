@@ -1,4 +1,6 @@
 const EXAM_MINUTES = 20;
+const TARGET_SCORE = 60;
+const POINTS_BY_ATTEMPT = [5, 3, 2, 1];
 
 const questions = [
   {
@@ -169,6 +171,8 @@ const questions = [
   }
 ];
 
+const MAX_RAW_SCORE = questions.length * POINTS_BY_ATTEMPT[0];
+
 const startScreen = document.getElementById("start-screen");
 const quizScreen = document.getElementById("quiz-screen");
 const resultScreen = document.getElementById("result-screen");
@@ -176,12 +180,16 @@ const resultScreen = document.getElementById("result-screen");
 const studentNameInput = document.getElementById("student-name");
 const studentLabel = document.getElementById("student-label");
 const progressLabel = document.getElementById("progress-label");
+const scoreLabel = document.getElementById("score-label");
 const timerLabel = document.getElementById("timer-label");
 const progressFill = document.getElementById("progress-fill");
 
+const questionCard = document.querySelector(".question-card");
 const questionSection = document.getElementById("question-section");
 const questionText = document.getElementById("question-text");
+const questionPoints = document.getElementById("question-points");
 const optionsWrap = document.getElementById("options");
+const feedbackLine = document.getElementById("feedback-line");
 
 const scoreLine = document.getElementById("score-line");
 const scaledLine = document.getElementById("scaled-line");
@@ -193,14 +201,109 @@ const prevBtn = document.getElementById("prev-btn");
 const nextBtn = document.getElementById("next-btn");
 const retryBtn = document.getElementById("retry-btn");
 
+function createQuestionState(optionCount) {
+  return {
+    attempts: 0,
+    solved: false,
+    selected: null,
+    eliminated: Array(optionCount).fill(false),
+    wrongPicks: [],
+    points: 0,
+    feedbackText: "",
+    feedbackTone: "neutral"
+  };
+}
+
 const state = {
   studentName: "",
   currentIndex: 0,
-  answers: Array(questions.length).fill(null),
+  questionStates: questions.map((question) => createQuestionState(question.options.length)),
   secondsLeft: EXAM_MINUTES * 60,
   timerId: null,
   finished: false
 };
+
+let audioContext = null;
+
+function getAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+
+  return audioContext;
+}
+
+function playTone(frequency, durationMs, options = {}) {
+  const { type = "sine", gain = 0.04, delay = 0 } = options;
+  const context = getAudioContext();
+
+  if (!context) {
+    return;
+  }
+
+  const oscillator = context.createOscillator();
+  const gainNode = context.createGain();
+  const startAt = context.currentTime + delay;
+  const endAt = startAt + durationMs / 1000;
+
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, startAt);
+
+  gainNode.gain.setValueAtTime(0.0001, startAt);
+  gainNode.gain.exponentialRampToValueAtTime(gain, startAt + 0.01);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(context.destination);
+
+  oscillator.start(startAt);
+  oscillator.stop(endAt + 0.02);
+}
+
+function playClickSound() {
+  playTone(420, 50, { type: "triangle", gain: 0.018 });
+}
+
+function playCorrectSound() {
+  playTone(523.25, 120, { type: "triangle", gain: 0.03, delay: 0 });
+  playTone(659.25, 120, { type: "triangle", gain: 0.03, delay: 0.1 });
+  playTone(783.99, 140, { type: "triangle", gain: 0.033, delay: 0.2 });
+}
+
+function playWrongSound() {
+  playTone(230, 140, { type: "sawtooth", gain: 0.025, delay: 0 });
+  playTone(170, 170, { type: "sawtooth", gain: 0.025, delay: 0.1 });
+}
+
+function playFinishSound() {
+  playTone(392, 130, { type: "triangle", gain: 0.028, delay: 0 });
+  playTone(523.25, 130, { type: "triangle", gain: 0.028, delay: 0.11 });
+  playTone(659.25, 170, { type: "triangle", gain: 0.03, delay: 0.22 });
+}
+
+function pointsForAttempt(attemptNumber) {
+  return POINTS_BY_ATTEMPT[attemptNumber - 1] ?? 0;
+}
+
+function getRawScore() {
+  return state.questionStates.reduce((total, questionState) => total + questionState.points, 0);
+}
+
+function toScaledScore(rawScore) {
+  if (MAX_RAW_SCORE === 0) {
+    return 0;
+  }
+  return (rawScore / MAX_RAW_SCORE) * TARGET_SCORE;
+}
 
 function formatTime(totalSeconds) {
   const safeSeconds = Math.max(0, totalSeconds);
@@ -214,16 +317,62 @@ function updateTimerDisplay() {
   timerLabel.classList.toggle("timer-warning", state.secondsLeft <= 180);
 }
 
-function startTimer() {
-  if (state.timerId) {
-    clearInterval(state.timerId);
+function updateScoreDisplay() {
+  const rawScore = getRawScore();
+  const scaledScore = toScaledScore(rawScore);
+  scoreLabel.textContent = `${scaledScore.toFixed(1)} / ${TARGET_SCORE}`;
+}
+
+function setFeedbackUI(text, tone) {
+  feedbackLine.textContent = text;
+  feedbackLine.classList.remove("neutral", "good", "bad");
+  feedbackLine.classList.add(tone);
+}
+
+function getDefaultFeedback(questionState) {
+  if (questionState.solved) {
+    return {
+      text: `Solved in ${questionState.attempts} attempt(s). You earned ${questionState.points} raw point(s).`,
+      tone: "good"
+    };
   }
 
+  const attemptNumber = questionState.attempts + 1;
+  const possiblePoints = pointsForAttempt(attemptNumber);
+
+  if (questionState.attempts === 0) {
+    return { text: "First correct attempt gives 5 points.", tone: "neutral" };
+  }
+
+  return {
+    text: `Attempt ${attemptNumber}: correct answer now gives ${possiblePoints} point(s).`,
+    tone: "neutral"
+  };
+}
+
+function setQuestionFeedback(questionState, text, tone) {
+  questionState.feedbackText = text;
+  questionState.feedbackTone = tone;
+}
+
+function triggerCardEffect(effectClass) {
+  questionCard.classList.remove("pulse-good", "shake-bad");
+  void questionCard.offsetWidth;
+  questionCard.classList.add(effectClass);
+}
+
+questionCard.addEventListener("animationend", () => {
+  questionCard.classList.remove("pulse-good", "shake-bad");
+});
+
+function startTimer() {
+  stopTimer();
+
   state.timerId = setInterval(() => {
-    state.secondsLeft -= 1;
+    state.secondsLeft = Math.max(0, state.secondsLeft - 1);
     updateTimerDisplay();
 
-    if (state.secondsLeft <= 0) {
+    if (state.secondsLeft === 0) {
       finishExam(true);
     }
   }, 1000);
@@ -236,65 +385,134 @@ function stopTimer() {
   }
 }
 
+function selectOption(selectedIndex) {
+  const question = questions[state.currentIndex];
+  const questionState = state.questionStates[state.currentIndex];
+
+  if (state.finished || questionState.solved || questionState.eliminated[selectedIndex]) {
+    return;
+  }
+
+  playClickSound();
+
+  const attemptNumber = questionState.attempts + 1;
+  questionState.attempts = attemptNumber;
+
+  if (selectedIndex === question.correctIndex) {
+    const earnedPoints = pointsForAttempt(attemptNumber);
+    questionState.solved = true;
+    questionState.selected = selectedIndex;
+    questionState.points = earnedPoints;
+
+    setQuestionFeedback(
+      questionState,
+      `Correct! +${earnedPoints} point(s) on attempt ${attemptNumber}.`,
+      "good"
+    );
+    playCorrectSound();
+    triggerCardEffect("pulse-good");
+  } else {
+    questionState.eliminated[selectedIndex] = true;
+    questionState.wrongPicks.push(selectedIndex);
+
+    const nextPoints = pointsForAttempt(attemptNumber + 1);
+    const remainingChoices = question.options.filter((_, index) => !questionState.eliminated[index]).length;
+
+    const feedbackText =
+      remainingChoices <= 1
+        ? `Incorrect. Option removed. One option remains; selecting it gives ${nextPoints} point(s).`
+        : `Incorrect. Option removed. Next correct answer gives ${nextPoints} point(s).`;
+
+    setQuestionFeedback(questionState, feedbackText, "bad");
+    playWrongSound();
+    triggerCardEffect("shake-bad");
+  }
+
+  renderQuestion();
+}
+
 function renderQuestion() {
   const question = questions[state.currentIndex];
-  const selected = state.answers[state.currentIndex];
-  const answeredCount = state.answers.filter((value) => value !== null).length;
+  const questionState = state.questionStates[state.currentIndex];
+  const solvedCount = state.questionStates.filter((item) => item.solved).length;
 
   questionSection.textContent = question.section;
   questionText.textContent = question.prompt;
   progressLabel.textContent = `${state.currentIndex + 1} / ${questions.length}`;
-  progressFill.style.width = `${(answeredCount / questions.length) * 100}%`;
+  progressFill.style.width = `${(solvedCount / questions.length) * 100}%`;
+
+  updateScoreDisplay();
+
+  if (questionState.solved) {
+    questionPoints.textContent = `Raw points earned in this question: ${questionState.points}`;
+  } else {
+    const possiblePoints = pointsForAttempt(questionState.attempts + 1);
+    questionPoints.textContent = `Correct now = ${possiblePoints} raw point(s).`;
+  }
 
   optionsWrap.innerHTML = "";
   question.options.forEach((option, index) => {
+    if (questionState.eliminated[index]) {
+      return;
+    }
+
     const optionButton = document.createElement("button");
     optionButton.type = "button";
     optionButton.className = "option";
     optionButton.textContent = option;
-    optionButton.setAttribute("aria-pressed", String(selected === index));
 
-    if (selected === index) {
-      optionButton.classList.add("selected");
+    if (questionState.solved) {
+      optionButton.disabled = true;
+      if (index === question.correctIndex) {
+        optionButton.classList.add("locked-correct", "selected");
+      }
+    } else {
+      optionButton.addEventListener("click", () => {
+        selectOption(index);
+      });
     }
-
-    optionButton.addEventListener("click", () => {
-      state.answers[state.currentIndex] = index;
-      renderQuestion();
-    });
 
     optionsWrap.appendChild(optionButton);
   });
 
+  const feedback = questionState.feedbackText
+    ? { text: questionState.feedbackText, tone: questionState.feedbackTone }
+    : getDefaultFeedback(questionState);
+  setFeedbackUI(feedback.text, feedback.tone);
+
   prevBtn.disabled = state.currentIndex === 0;
-  nextBtn.disabled = selected === null;
+  nextBtn.disabled = !questionState.solved;
   nextBtn.textContent = state.currentIndex === questions.length - 1 ? "Finish" : "Next";
 }
 
-function gradeExam() {
-  return questions.reduce((score, question, index) => {
-    return state.answers[index] === question.correctIndex ? score + 1 : score;
-  }, 0);
+function getFinalScores() {
+  const rawScore = getRawScore();
+  const scaledScore = toScaledScore(rawScore);
+  const percent = (scaledScore / TARGET_SCORE) * 100;
+  return { rawScore, scaledScore, percent };
 }
 
 function buildReview() {
   reviewList.innerHTML = "";
 
   questions.forEach((question, index) => {
-    const userAnswer = state.answers[index];
-    const isCorrect = userAnswer === question.correctIndex;
-
+    const questionState = state.questionStates[index];
     const item = document.createElement("article");
-    item.className = `review-item ${isCorrect ? "correct" : "wrong"}`;
+    item.className = `review-item ${questionState.solved ? "correct" : "wrong"}`;
 
-    const userAnswerText = userAnswer === null ? "No answer" : question.options[userAnswer];
-    const correctAnswerText = question.options[question.correctIndex];
+    const removedChoices = questionState.wrongPicks.length
+      ? questionState.wrongPicks.map((choiceIndex) => question.options[choiceIndex]).join(" | ")
+      : "None";
+
+    const statusLabel = questionState.solved ? "Solved" : "Unsolved";
 
     item.innerHTML = `
-      <h3>${index + 1}. ${isCorrect ? "Correct" : "Incorrect"}</h3>
+      <h3>${index + 1}. ${statusLabel}</h3>
       <p><strong>Question:</strong> ${question.prompt}</p>
-      <p><strong>Your answer:</strong> ${userAnswerText}</p>
-      <p><strong>Correct answer:</strong> ${correctAnswerText}</p>
+      <p><strong>Attempts:</strong> ${questionState.attempts}</p>
+      <p><strong>Raw points earned:</strong> ${questionState.points}</p>
+      <p><strong>Removed wrong choices:</strong> ${removedChoices}</p>
+      <p><strong>Correct answer:</strong> ${question.options[question.correctIndex]}</p>
       <p><strong>Why:</strong> ${question.explanation}</p>
     `;
 
@@ -309,23 +527,21 @@ function finishExam(timedOut) {
 
   state.finished = true;
   stopTimer();
+  playFinishSound();
 
-  const score = gradeExam();
-  const total = questions.length;
-  const percent = Math.round((score / total) * 100);
-  const scaledTo20 = ((score / total) * 20).toFixed(1);
+  const { rawScore, scaledScore, percent } = getFinalScores();
 
-  scoreLine.textContent = `${state.studentName}, your score is ${score}/${total} (${percent}%).`;
-  scaledLine.textContent = `Equivalent score on a 20-point scale: ${scaledTo20}/20.`;
+  scoreLine.textContent = `${state.studentName}, your final score is ${scaledScore.toFixed(1)}/${TARGET_SCORE}.`;
+  scaledLine.textContent = `Raw points: ${rawScore}/${MAX_RAW_SCORE} with the 5,3,2,1,0 attempt system.`;
 
   if (timedOut) {
-    messageLine.textContent = "Time is over. Answers were submitted automatically.";
+    messageLine.textContent = "Time is over. The exam was submitted automatically.";
   } else if (percent >= 85) {
-    messageLine.textContent = "Strong performance. You are ready for the test.";
+    messageLine.textContent = "Excellent result. You are well prepared.";
   } else if (percent >= 70) {
-    messageLine.textContent = "Good work. Review missed concepts before test day.";
+    messageLine.textContent = "Good result. Review the missed items once more.";
   } else {
-    messageLine.textContent = "Needs more review. Focus on genre differences and perspective.";
+    messageLine.textContent = "Keep practicing. Focus on differences between biography, memoir, and personal narrative.";
   }
 
   buildReview();
@@ -334,15 +550,19 @@ function finishExam(timedOut) {
 }
 
 function startExam() {
+  getAudioContext();
+  playClickSound();
+
   const enteredName = studentNameInput.value.trim();
   state.studentName = enteredName || "Student";
   state.currentIndex = 0;
-  state.answers = Array(questions.length).fill(null);
+  state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
   state.finished = false;
 
   studentLabel.textContent = state.studentName;
   updateTimerDisplay();
+  updateScoreDisplay();
   renderQuestion();
   startTimer();
 
@@ -352,14 +572,17 @@ function startExam() {
 }
 
 function resetToStart() {
+  playClickSound();
   stopTimer();
+
   state.finished = false;
   state.currentIndex = 0;
-  state.answers = Array(questions.length).fill(null);
+  state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
 
   studentNameInput.value = "";
   updateTimerDisplay();
+  updateScoreDisplay();
 
   quizScreen.classList.add("hidden");
   resultScreen.classList.add("hidden");
@@ -368,6 +591,7 @@ function resetToStart() {
 }
 
 startBtn.addEventListener("click", startExam);
+
 studentNameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     startExam();
@@ -376,6 +600,7 @@ studentNameInput.addEventListener("keydown", (event) => {
 
 prevBtn.addEventListener("click", () => {
   if (state.currentIndex > 0) {
+    playClickSound();
     state.currentIndex -= 1;
     renderQuestion();
   }
@@ -383,6 +608,7 @@ prevBtn.addEventListener("click", () => {
 
 nextBtn.addEventListener("click", () => {
   if (state.currentIndex < questions.length - 1) {
+    playClickSound();
     state.currentIndex += 1;
     renderQuestion();
     return;
@@ -394,3 +620,4 @@ nextBtn.addEventListener("click", () => {
 retryBtn.addEventListener("click", resetToStart);
 
 updateTimerDisplay();
+updateScoreDisplay();
