@@ -73,6 +73,8 @@ const VOICE_NAME_HINTS = [
   "daniel"
 ];
 const PROCTOR_CODES = ["2332", "5834", "8858"];
+const FLOW_STORAGE_KEY = "abraham_full_exam_flow";
+const PENDING_NAME_KEY = "abraham_pending_student";
 
 const startScreen = document.getElementById("start-screen");
 const quizScreen = document.getElementById("quiz-screen");
@@ -117,7 +119,8 @@ const state = {
   locked: false,
   usedProctorCodes: [],
   selectedVoiceUri: "",
-  speechToken: 0
+  speechToken: 0,
+  redirectTimerId: null
 };
 
 function shuffleArray(items) {
@@ -570,6 +573,33 @@ function buildReview() {
   });
 }
 
+function saveDictationFlowData() {
+  const dictationMaxScore = words.length;
+  const dictationRawScore = state.score;
+  const dictationScaledScore = (dictationRawScore / dictationMaxScore) * 40;
+
+  const payload = {
+    studentName: state.studentName,
+    dictationRawScore,
+    dictationMaxScore,
+    dictationScaledScore: Number(dictationScaledScore.toFixed(1)),
+    completedAt: new Date().toISOString()
+  };
+
+  sessionStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(payload));
+  sessionStorage.setItem(PENDING_NAME_KEY, state.studentName);
+}
+
+function scheduleMainExamRedirect() {
+  if (state.redirectTimerId) {
+    clearTimeout(state.redirectTimerId);
+  }
+
+  state.redirectTimerId = setTimeout(() => {
+    window.location.href = "index.html";
+  }, 1800);
+}
+
 function finishTest() {
   state.finished = true;
   state.locked = false;
@@ -577,24 +607,36 @@ function finishTest() {
   stopSpeaking();
   const total = words.length;
   const percent = Math.round((state.score / total) * 100);
+  const dictationScaledScore = (state.score / total) * 40;
 
-  scoreLine.textContent = `${state.studentName}, your score is ${state.score}/${total} (${percent}%).`;
+  scoreLine.textContent =
+    `${state.studentName}, your score is ${state.score}/${total} (${percent}%). ` +
+    `Scaled dictation score: ${dictationScaledScore.toFixed(1)}/40.`;
 
   if (percent >= 85) {
-    messageLine.textContent = "Excellent spelling performance.";
+    messageLine.textContent = "Excellent spelling performance. Moving to Part 2...";
   } else if (percent >= 70) {
-    messageLine.textContent = "Good work. Keep practicing difficult words.";
+    messageLine.textContent = "Good work. Moving to Part 2...";
   } else {
-    messageLine.textContent = "Keep practicing. Replay the words and review the sentences.";
+    messageLine.textContent = "Keep practicing. Moving to Part 2...";
   }
 
   buildReview();
   quizScreen.classList.add("hidden");
   resultScreen.classList.remove("hidden");
+
+  saveDictationFlowData();
+  scheduleMainExamRedirect();
 }
 
 function startTest() {
+  if (state.redirectTimerId) {
+    clearTimeout(state.redirectTimerId);
+    state.redirectTimerId = null;
+  }
+
   state.studentName = studentNameInput.value.trim() || "Student";
+  sessionStorage.setItem(PENDING_NAME_KEY, state.studentName);
   state.currentIndex = 0;
   state.score = 0;
   state.answers = words.map(() => null);
@@ -636,6 +678,11 @@ function goNextQuestion() {
 }
 
 function resetTest() {
+  if (state.redirectTimerId) {
+    clearTimeout(state.redirectTimerId);
+    state.redirectTimerId = null;
+  }
+
   stopSpeaking();
   state.currentIndex = 0;
   state.score = 0;
@@ -646,6 +693,7 @@ function resetTest() {
   state.locked = false;
   state.usedProctorCodes = [];
   hideProctorLock();
+  sessionStorage.removeItem(FLOW_STORAGE_KEY);
 
   studentNameInput.value = "";
   startScreen.classList.remove("hidden");
@@ -722,5 +770,10 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("blur", () => {
   lockTestForLeavingPage("Test paused: leaving the test window is not allowed. Enter a teacher code to continue.");
 });
+
+const pendingStudentName = sessionStorage.getItem(PENDING_NAME_KEY);
+if (pendingStudentName && !studentNameInput.value) {
+  studentNameInput.value = pendingStudentName;
+}
 
 initializeVoiceSystem();

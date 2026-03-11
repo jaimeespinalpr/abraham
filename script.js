@@ -1,5 +1,7 @@
 const EXAM_MINUTES = 20;
-const TARGET_SCORE = 60;
+const MAIN_TARGET_SCORE = 60;
+const DICTATION_TARGET_SCORE = 40;
+const TOTAL_TARGET_SCORE = 100;
 const POINTS_BY_ATTEMPT = [5, 3, 2, 1];
 const SCHOOL_NAME = "Ines Maria Mendoza";
 const TEACHER_NAME = "Mr. Galva";
@@ -7,6 +9,8 @@ const CLASS_NAME = "English";
 const RESULT_EMAIL = "abrahamgalva@gmail.com";
 const RESULT_EMAIL_ENDPOINT = `https://formsubmit.co/ajax/${RESULT_EMAIL}`;
 const PROCTOR_CODES = ["2332", "5834", "8858"];
+const FLOW_STORAGE_KEY = "abraham_full_exam_flow";
+const PENDING_NAME_KEY = "abraham_pending_student";
 
 const questions = [
   {
@@ -254,7 +258,10 @@ const state = {
   timerId: null,
   finished: false,
   locked: false,
-  usedProctorCodes: []
+  usedProctorCodes: [],
+  dictationRawScore: 0,
+  dictationMaxScore: 12,
+  dictationScaledScore: 0
 };
 
 let audioContext = null;
@@ -332,11 +339,15 @@ function getRawScore() {
   return state.questionStates.reduce((total, questionState) => total + questionState.points, 0);
 }
 
-function toScaledScore(rawScore) {
+function toScaledMainScore(rawScore) {
   if (MAX_RAW_SCORE === 0) {
     return 0;
   }
-  return (rawScore / MAX_RAW_SCORE) * TARGET_SCORE;
+  return (rawScore / MAX_RAW_SCORE) * MAIN_TARGET_SCORE;
+}
+
+function getTotalScaledScore(mainRawScore) {
+  return state.dictationScaledScore + toScaledMainScore(mainRawScore);
 }
 
 function formatTime(totalSeconds) {
@@ -353,8 +364,8 @@ function updateTimerDisplay() {
 
 function updateScoreDisplay() {
   const rawScore = getRawScore();
-  const scaledScore = toScaledScore(rawScore);
-  scoreLabel.textContent = `${scaledScore.toFixed(1)} / ${TARGET_SCORE}`;
+  const totalScore = getTotalScaledScore(rawScore);
+  scoreLabel.textContent = `${totalScore.toFixed(1)} / ${TOTAL_TARGET_SCORE}`;
 }
 
 function setFeedbackUI(text, tone) {
@@ -537,19 +548,28 @@ function buildQuestionBreakdown() {
     .join("\n");
 }
 
-async function sendResultEmail({ rawScore, scaledScore, percent, timedOut }) {
+async function sendResultEmail({
+  mainRawScore,
+  mainScaledScore,
+  totalScaledScore,
+  percent,
+  timedOut
+}) {
   const secondsUsed = EXAM_MINUTES * 60 - state.secondsLeft;
 
   const payload = {
-    _subject: `[Exam] ${state.studentName} - ${scaledScore.toFixed(1)}/${TARGET_SCORE}`,
+    _subject: `[Exam] ${state.studentName} - ${totalScaledScore.toFixed(1)}/${TOTAL_TARGET_SCORE}`,
     _template: "table",
     _captcha: "false",
     school: SCHOOL_NAME,
     teacher: TEACHER_NAME,
     class_name: CLASS_NAME,
     student_name: state.studentName,
-    final_score_over_60: scaledScore.toFixed(1),
-    raw_score: `${rawScore}/${MAX_RAW_SCORE}`,
+    dictation_raw_score: `${state.dictationRawScore}/${state.dictationMaxScore}`,
+    dictation_score_over_40: state.dictationScaledScore.toFixed(1),
+    main_raw_score: `${mainRawScore}/${MAX_RAW_SCORE}`,
+    main_score_over_60: mainScaledScore.toFixed(1),
+    final_score_over_100: totalScaledScore.toFixed(1),
     percentage: `${percent.toFixed(1)}%`,
     timed_out: timedOut ? "Yes" : "No",
     time_used: formatTime(secondsUsed),
@@ -745,10 +765,11 @@ function renderQuestion() {
 }
 
 function getFinalScores() {
-  const rawScore = getRawScore();
-  const scaledScore = toScaledScore(rawScore);
-  const percent = (scaledScore / TARGET_SCORE) * 100;
-  return { rawScore, scaledScore, percent };
+  const mainRawScore = getRawScore();
+  const mainScaledScore = toScaledMainScore(mainRawScore);
+  const totalScaledScore = getTotalScaledScore(mainRawScore);
+  const percent = (totalScaledScore / TOTAL_TARGET_SCORE) * 100;
+  return { mainRawScore, mainScaledScore, totalScaledScore, percent };
 }
 
 function buildReview() {
@@ -791,10 +812,13 @@ function finishExam(timedOut) {
   hideProctorLock();
   playFinishSound();
 
-  const { rawScore, scaledScore, percent } = getFinalScores();
+  const { mainRawScore, mainScaledScore, totalScaledScore, percent } = getFinalScores();
 
-  scoreLine.textContent = `${state.studentName}, your final score is ${scaledScore.toFixed(1)}/${TARGET_SCORE}.`;
-  scaledLine.textContent = `Raw points: ${rawScore}/${MAX_RAW_SCORE} with the 5,3,2,1,0 attempt system.`;
+  scoreLine.textContent = `${state.studentName}, your final score is ${totalScaledScore.toFixed(1)}/${TOTAL_TARGET_SCORE}.`;
+  scaledLine.textContent =
+    `Dictation: ${state.dictationScaledScore.toFixed(1)}/${DICTATION_TARGET_SCORE} ` +
+    `(${state.dictationRawScore}/${state.dictationMaxScore}) + ` +
+    `Main exam: ${mainScaledScore.toFixed(1)}/${MAIN_TARGET_SCORE} (raw ${mainRawScore}/${MAX_RAW_SCORE}).`;
 
   if (timedOut) {
     messageLine.textContent = "Time is over. The exam was submitted automatically.";
@@ -811,22 +835,54 @@ function finishExam(timedOut) {
   resultScreen.classList.remove("hidden");
 
   setEmailStatus("Enviando resultado por email...", "pending");
-  sendResultEmail({ rawScore, scaledScore, percent, timedOut });
+  sendResultEmail({ mainRawScore, mainScaledScore, totalScaledScore, percent, timedOut });
 }
 
-function startExam() {
+function beginFullExamFlow() {
+  const enteredName = studentNameInput.value.trim();
+  const studentName = enteredName || "Student";
+  sessionStorage.setItem(PENDING_NAME_KEY, studentName);
+  window.location.href = "dictado.html";
+}
+
+function consumeDictationFlowData() {
+  const raw = sessionStorage.getItem(FLOW_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  sessionStorage.removeItem(FLOW_STORAGE_KEY);
+
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      studentName: typeof parsed.studentName === "string" ? parsed.studentName : "Student",
+      dictationRawScore: Number(parsed.dictationRawScore) || 0,
+      dictationMaxScore: Number(parsed.dictationMaxScore) || 12,
+      dictationScaledScore: Number(parsed.dictationScaledScore) || 0
+    };
+  } catch (error) {
+    console.error("Invalid dictation flow data:", error);
+    return null;
+  }
+}
+
+function startExam(flowData = null) {
   getAudioContext();
   playClickSound();
   setEmailStatus("", "pending", false);
 
   const enteredName = studentNameInput.value.trim();
-  state.studentName = enteredName || "Student";
+  state.studentName = flowData?.studentName || enteredName || "Student";
   state.currentIndex = 0;
   state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
   state.finished = false;
   state.locked = false;
   state.usedProctorCodes = [];
+  state.dictationRawScore = flowData?.dictationRawScore || 0;
+  state.dictationMaxScore = flowData?.dictationMaxScore || 12;
+  state.dictationScaledScore = flowData?.dictationScaledScore || 0;
   hideProctorLock();
 
   studentLabel.textContent = state.studentName;
@@ -851,6 +907,10 @@ function resetToStart() {
   state.questionStates = questions.map((question) => createQuestionState(question.options.length));
   state.secondsLeft = EXAM_MINUTES * 60;
   state.usedProctorCodes = [];
+  state.dictationRawScore = 0;
+  state.dictationMaxScore = 12;
+  state.dictationScaledScore = 0;
+  sessionStorage.removeItem(PENDING_NAME_KEY);
   hideProctorLock();
 
   studentNameInput.value = "";
@@ -863,11 +923,11 @@ function resetToStart() {
   studentNameInput.focus();
 }
 
-startBtn.addEventListener("click", startExam);
+startBtn.addEventListener("click", beginFullExamFlow);
 
 studentNameInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
-    startExam();
+    beginFullExamFlow();
   }
 });
 
@@ -921,6 +981,18 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("blur", () => {
   lockExamForLeavingPage("Exam paused: leaving the exam window is not allowed. Enter a teacher code to continue.");
 });
+
+const pendingStudentName = sessionStorage.getItem(PENDING_NAME_KEY);
+if (pendingStudentName && !studentNameInput.value) {
+  studentNameInput.value = pendingStudentName;
+}
+
+const dictationFlowData = consumeDictationFlowData();
+if (dictationFlowData) {
+  sessionStorage.removeItem(PENDING_NAME_KEY);
+  studentNameInput.value = dictationFlowData.studentName;
+  startExam(dictationFlowData);
+}
 
 updateTimerDisplay();
 updateScoreDisplay();
