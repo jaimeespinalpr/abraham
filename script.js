@@ -1,6 +1,11 @@
 const EXAM_MINUTES = 20;
 const TARGET_SCORE = 60;
 const POINTS_BY_ATTEMPT = [5, 3, 2, 1];
+const SCHOOL_NAME = "Ines Maria Mendoza";
+const TEACHER_NAME = "Mr. Galva";
+const CLASS_NAME = "English";
+const RESULT_EMAIL = "abrahamgalva@gmail.com";
+const RESULT_EMAIL_ENDPOINT = `https://formsubmit.co/ajax/${RESULT_EMAIL}`;
 
 const questions = [
   {
@@ -194,6 +199,7 @@ const feedbackLine = document.getElementById("feedback-line");
 const scoreLine = document.getElementById("score-line");
 const scaledLine = document.getElementById("scaled-line");
 const messageLine = document.getElementById("message-line");
+const emailStatus = document.getElementById("email-status");
 const reviewList = document.getElementById("review-list");
 
 const startBtn = document.getElementById("start-btn");
@@ -327,6 +333,91 @@ function setFeedbackUI(text, tone) {
   feedbackLine.textContent = text;
   feedbackLine.classList.remove("neutral", "good", "bad");
   feedbackLine.classList.add(tone);
+}
+
+function setEmailStatus(text, tone, visible = true) {
+  if (!emailStatus) {
+    return;
+  }
+
+  emailStatus.textContent = text;
+  emailStatus.classList.remove("pending", "success", "error", "hidden");
+
+  if (!visible) {
+    emailStatus.classList.add("hidden");
+    return;
+  }
+
+  emailStatus.classList.add(tone);
+}
+
+function compactText(text) {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function buildQuestionBreakdown() {
+  return questions
+    .map((question, index) => {
+      const questionState = state.questionStates[index];
+      const removedChoices = questionState.wrongPicks.length
+        ? questionState.wrongPicks.map((choiceIndex) => compactText(question.options[choiceIndex])).join(" | ")
+        : "None";
+
+      return [
+        `Q${index + 1}`,
+        `Solved: ${questionState.solved ? "Yes" : "No"}`,
+        `Attempts: ${questionState.attempts}`,
+        `Points: ${questionState.points}`,
+        `Correct answer: ${compactText(question.options[question.correctIndex])}`,
+        `Removed choices: ${removedChoices}`,
+        `Prompt: ${compactText(question.prompt)}`
+      ].join(" | ");
+    })
+    .join("\n");
+}
+
+async function sendResultEmail({ rawScore, scaledScore, percent, timedOut }) {
+  const secondsUsed = EXAM_MINUTES * 60 - state.secondsLeft;
+
+  const payload = {
+    _subject: `[Exam] ${state.studentName} - ${scaledScore.toFixed(1)}/${TARGET_SCORE}`,
+    _template: "table",
+    _captcha: "false",
+    school: SCHOOL_NAME,
+    teacher: TEACHER_NAME,
+    class_name: CLASS_NAME,
+    student_name: state.studentName,
+    final_score_over_60: scaledScore.toFixed(1),
+    raw_score: `${rawScore}/${MAX_RAW_SCORE}`,
+    percentage: `${percent.toFixed(1)}%`,
+    timed_out: timedOut ? "Yes" : "No",
+    time_used: formatTime(secondsUsed),
+    submitted_at: new Date().toLocaleString(),
+    breakdown: buildQuestionBreakdown()
+  };
+
+  try {
+    const response = await fetch(RESULT_EMAIL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Email service returned status ${response.status}`);
+    }
+
+    setEmailStatus(`Resultado enviado a ${RESULT_EMAIL}.`, "success");
+  } catch (error) {
+    console.error("Email send error:", error);
+    setEmailStatus(
+      `No se pudo enviar el email. Si es el primer uso, activa FormSubmit desde la bandeja de ${RESULT_EMAIL}.`,
+      "error"
+    );
+  }
 }
 
 function getDefaultFeedback(questionState) {
@@ -547,11 +638,15 @@ function finishExam(timedOut) {
   buildReview();
   quizScreen.classList.add("hidden");
   resultScreen.classList.remove("hidden");
+
+  setEmailStatus("Enviando resultado por email...", "pending");
+  sendResultEmail({ rawScore, scaledScore, percent, timedOut });
 }
 
 function startExam() {
   getAudioContext();
   playClickSound();
+  setEmailStatus("", "pending", false);
 
   const enteredName = studentNameInput.value.trim();
   state.studentName = enteredName || "Student";
@@ -574,6 +669,7 @@ function startExam() {
 function resetToStart() {
   playClickSound();
   stopTimer();
+  setEmailStatus("", "pending", false);
 
   state.finished = false;
   state.currentIndex = 0;

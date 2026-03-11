@@ -355,6 +355,32 @@ button.ghost {
   color: var(--ink-soft);
 }
 
+.email-status {
+  margin: 0.6rem 0 0;
+  padding: 0.58rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+
+.email-status.pending {
+  background: #f9f0dd;
+  color: #785700;
+  border-color: #e1cd9a;
+}
+
+.email-status.success {
+  background: #ddf3e8;
+  color: #0f6041;
+  border-color: #8cc4aa;
+}
+
+.email-status.error {
+  background: #fae6e6;
+  color: #8f2f2f;
+  border-color: #dfa4a4;
+}
+
 .review-list {
   margin-top: 1rem;
   display: grid;
