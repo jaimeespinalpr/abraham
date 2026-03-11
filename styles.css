@@ -206,9 +206,72 @@ h2 {
 }
 
 .options {
-  margin-top: 1rem;
+  margin-top: 0.2rem;
   display: grid;
   gap: 0.56rem;
+}
+
+.answer-layout {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.95fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.blank-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffef8;
+  padding: 0.72rem;
+}
+
+.blank-label {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.blank-sentence {
+  margin: 0.55rem 0 0;
+  line-height: 1.45;
+  font-size: 1.02rem;
+}
+
+.blank-token {
+  display: inline-block;
+  min-width: 72px;
+  text-align: center;
+  border-bottom: 2px dashed #9aa89f;
+  margin: 0 0.2rem;
+  padding: 0 0.15rem;
+  font-weight: 700;
+  color: #556358;
+}
+
+.blank-token.filled {
+  border-bottom-style: solid;
+  border-bottom-color: #2a7157;
+  color: #125a43;
+}
+
+.word-bank {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fdf8ed;
+  padding: 0.72rem;
+}
+
+.word-bank-title {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
 }
 
 .option {
@@ -436,6 +499,10 @@ button.ghost {
 
   .nav-row button {
     flex: 1;
+  }
+
+  .answer-layout {
+    grid-template-columns: 1fr;
   }
 }
 

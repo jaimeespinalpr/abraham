@@ -9,170 +9,188 @@ const RESULT_EMAIL_ENDPOINT = `https://formsubmit.co/ajax/${RESULT_EMAIL}`;
 
 const questions = [
   {
-    section: "Part A",
-    prompt: "1) What is a biography?",
+    section: "Fill in the Blank",
+    prompt: "1) Select the best word to complete the sentence.",
+    sentence: "A biography is usually written by {blank}.",
     options: [
-      "A written account of a real person's life by another writer.",
-      "A fictional story inspired by a person.",
-      "A daily diary written only by the subject.",
-      "A short poem about life events."
+      "the subject",
+      "someone else",
+      "a fictional character",
+      "the reader"
     ],
-    correctIndex: 0,
-    explanation: "A biography tells the life story of a real person and is written by someone else."
+    correctIndex: 1,
+    explanation: "A biography is written by someone other than the person in the story."
   },
   {
-    section: "Part A",
-    prompt: "2) What key element distinguishes a biography from a memoir or a personal narrative?",
+    section: "Fill in the Blank",
+    prompt: "2) Select the best word to complete the sentence.",
+    sentence: "A memoir focuses on {blank} moments instead of an entire life story.",
     options: [
-      "Biographies are always longer texts.",
-      "Biographies include no events.",
-      "Authorship and point of view: biography is third-person by another author.",
-      "Memoirs never use reflection."
+      "specific",
+      "imaginary",
+      "random",
+      "future"
+    ],
+    correctIndex: 0,
+    explanation: "Memoirs usually zoom in on selected events and themes."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "3) Select the best word to complete the sentence.",
+    sentence: "A personal narrative is often told in {blank} person.",
+    options: [
+      "third",
+      "second",
+      "first",
+      "passive"
     ],
     correctIndex: 2,
-    explanation: "The main difference is who writes it and the perspective used."
+    explanation: "Personal narratives are usually first-person accounts."
   },
   {
-    section: "Part A",
-    prompt: "3) What is the main purpose of a memoir?",
+    section: "Fill in the Blank",
+    prompt: "4) Select the best word to complete the sentence.",
+    sentence: "Most biographies describe events using the {blank} tense.",
     options: [
-      "To report facts with no emotions.",
-      "To narrate the entire life from birth to death.",
-      "To share personal reflection on specific life experiences and their meaning.",
-      "To imitate a news article."
+      "future",
+      "past",
+      "present continuous",
+      "conditional"
     ],
+    correctIndex: 1,
+    explanation: "Biographies commonly narrate life events in past tense."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "5) Select the best word to complete the sentence.",
+    sentence: "In personal narratives, tone reveals the author's {blank}.",
+    options: [
+      "feelings",
+      "salary",
+      "address",
+      "sources"
+    ],
+    correctIndex: 0,
+    explanation: "Tone communicates the writer's attitude and emotions."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "6) Select the best word to complete the sentence.",
+    sentence: "Memoirs usually include {blank} about what experiences mean.",
+    options: [
+      "reflection",
+      "statistics",
+      "citations only",
+      "maps"
+    ],
+    correctIndex: 0,
+    explanation: "Reflection is one of the key elements of memoir writing."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "7) Select the best word to complete the sentence.",
+    sentence: "Compared with memoirs, biographies are generally more {blank}.",
+    options: [
+      "objective",
+      "poetic",
+      "comic",
+      "mysterious"
+    ],
+    correctIndex: 0,
+    explanation: "Biographies usually prioritize factual and objective narration."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "8) Select the best word to complete the sentence.",
+    sentence: "A personal narrative often centers on {blank} important experience.",
+    options: [
+      "one",
+      "every",
+      "no",
+      "someone else's"
+    ],
+    correctIndex: 0,
+    explanation: "Personal narratives usually focus on a single meaningful experience."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "9) Select the best word to complete the sentence.",
+    sentence: "Early life, achievements, and challenges are common parts of a {blank}.",
+    options: ["recipe", "biography", "speech", "myth"],
+    correctIndex: 1,
+    explanation: "Those are classic building blocks of biography structure."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "10) Select the best word to complete the sentence.",
+    sentence: "Memoirs may highlight personal growth and lessons {blank}.",
+    options: ["learned", "avoided", "borrowed", "hidden"],
+    correctIndex: 0,
+    explanation: "Memoirs often include lessons learned through experience."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "11) Select the best word to complete the sentence.",
+    sentence: "The subject of a biography must be a {blank} person.",
+    options: ["real", "fictional", "symbolic", "anonymous only"],
+    correctIndex: 0,
+    explanation: "Biographies are based on real people and true life events."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "12) Select the best word to complete the sentence.",
+    sentence: "When writing biographies, authors often use {blank}-person pronouns like he/she/they.",
+    options: ["first", "third", "second", "zero"],
+    correctIndex: 1,
+    explanation: "Third-person point of view is typical in biography writing."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "13) Select the best word to complete the sentence.",
+    sentence: "A memoir is a type of {blank} writing.",
+    options: ["scientific", "autobiographical", "journalistic only", "technical"],
+    correctIndex: 1,
+    explanation: "Memoir is autobiographical writing focused on selected life events."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "14) Select the best word to complete the sentence.",
+    sentence: "Personal narratives usually include clear {blank} details such as time and place.",
+    options: ["setting", "equation", "footnote", "index"],
+    correctIndex: 0,
+    explanation: "Setting details help readers understand when and where events happened."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "15) Select the best word to complete the sentence.",
+    sentence: "A strong memoir can be organized around a central {blank}.",
+    options: ["theme", "table", "chart", "headline"],
+    correctIndex: 0,
+    explanation: "Theme connects events and reflections in memoir writing."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "16) Select the best word to complete the sentence.",
+    sentence: "If an option is wrong in this exam, it gets {blank} from the word bank.",
+    options: ["duplicated", "eliminated", "saved", "shuffled"],
+    correctIndex: 1,
+    explanation: "Wrong options are removed so students can try again with fewer choices."
+  },
+  {
+    section: "Fill in the Blank",
+    prompt: "17) Select the best word to complete the sentence.",
+    sentence: "Correct on first attempt gives {blank} raw points in this exam.",
+    options: ["2", "3", "5", "1"],
     correctIndex: 2,
-    explanation: "Memoirs focus on meaningful moments and what the writer learned from them."
+    explanation: "The first correct attempt is always worth 5 raw points."
   },
   {
-    section: "Part A",
-    prompt: "4) Which set best describes key elements of a memoir?",
-    options: [
-      "Imaginary characters and fantasy settings.",
-      "Selected true events, first-person voice, and reflection on themes.",
-      "Only timelines and dates.",
-      "No personal feelings at all."
-    ],
-    correctIndex: 1,
-    explanation: "Memoirs center on true experiences with interpretation and insight."
-  },
-  {
-    section: "Part A",
-    prompt: "5) What is a personal narrative?",
-    options: [
-      "A third-person report about a famous person.",
-      "A first-person account of a specific personal experience with emotion and reflection.",
-      "A laboratory report.",
-      "An objective biography of a public figure."
-    ],
-    correctIndex: 1,
-    explanation: "Personal narratives are first-person stories that reveal personal perspective."
-  },
-  {
-    section: "Part A",
-    prompt: "6) What grammar is commonly used in biographies?",
-    options: [
-      "Third-person references and mostly past-tense verbs.",
-      "Second-person commands in present tense.",
-      "Only future perfect forms.",
-      "First-person singular in every sentence."
-    ],
-    correctIndex: 0,
-    explanation: "Biographies usually describe past events from a third-person perspective."
-  },
-  {
-    section: "Part A",
-    prompt: "7) Early life, significant life events, and challenges are key elements of which type of writing?",
-    options: [
-      "Biography.",
-      "A recipe.",
-      "A dramatic script.",
-      "A myth."
-    ],
-    correctIndex: 0,
-    explanation: "Those are common core components of a biography."
-  },
-  {
-    section: "Part A",
-    prompt: "8) In a personal narrative, what does emotional tone usually refer to?",
-    options: [
-      "Formatting style and page design.",
-      "Rules for punctuation only.",
-      "The writer's feelings and attitude about the experience.",
-      "The publication date."
-    ],
+    section: "Fill in the Blank",
+    prompt: "18) Select the best word to complete the sentence.",
+    sentence: "Your final grade is automatically scaled to {blank} points.",
+    options: ["20", "40", "60", "100"],
     correctIndex: 2,
-    explanation: "Tone reflects the emotions and attitude communicated by the narrator."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "9) A biography is always written by the person about whom the story is focused.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "Biographies are generally written by someone other than the subject."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "10) Memoirs are a form of autobiographical writing that focuses on the author's entire life.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "Memoirs usually focus on selected events or themes, not every life stage."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "11) In a personal narrative, the author often reflects on the broader significance of experiences.",
-    options: ["True", "False"],
-    correctIndex: 0,
-    explanation: "Reflection is a key part of personal narrative writing."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "12) Biographies are exclusively written by the subject of the story in first person.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "This statement describes autobiography, not biography."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "13) Memoirs and personal narratives both focus on the author's interpretation of experiences.",
-    options: ["True", "False"],
-    correctIndex: 0,
-    explanation: "Both genres include personal perspective and interpretation."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "14) Biographies are typically more subjective than personal narratives.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "Biographies are usually more objective than personal narratives."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "15) Memoirs often explore specific themes or events instead of giving a complete life account.",
-    options: ["True", "False"],
-    correctIndex: 0,
-    explanation: "That selective focus is one defining trait of memoir."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "16) In a personal narrative, the author aims to present a fully objective account.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "Personal narratives are subjective and based on lived perspective."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "17) Biographies are always written only after the death of the subject.",
-    options: ["True", "False"],
-    correctIndex: 1,
-    explanation: "Many biographies are written while the subject is still alive."
-  },
-  {
-    section: "Part B - True / False",
-    prompt: "18) Memoirs can include reflections on personal growth and lessons learned.",
-    options: ["True", "False"],
-    correctIndex: 0,
-    explanation: "Insight and growth are common in memoir writing."
+    explanation: "The raw score is converted to a final score out of 60."
   }
 ];
 
@@ -193,6 +211,7 @@ const questionCard = document.querySelector(".question-card");
 const questionSection = document.getElementById("question-section");
 const questionText = document.getElementById("question-text");
 const questionPoints = document.getElementById("question-points");
+const blankSentence = document.getElementById("blank-sentence");
 const optionsWrap = document.getElementById("options");
 const feedbackLine = document.getElementById("feedback-line");
 
@@ -355,6 +374,34 @@ function compactText(text) {
   return text.replace(/\s+/g, " ").trim();
 }
 
+function getSentenceTemplate(question) {
+  return question.sentence || question.prompt;
+}
+
+function renderBlankSentence(question, questionState) {
+  if (!blankSentence) {
+    return;
+  }
+
+  const template = getSentenceTemplate(question);
+  const parts = template.split("{blank}");
+  const fillWord = questionState.solved ? question.options[question.correctIndex] : "_____";
+
+  if (parts.length !== 2) {
+    blankSentence.textContent = template;
+    return;
+  }
+
+  blankSentence.innerHTML = "";
+  const token = document.createElement("span");
+  token.className = `blank-token ${questionState.solved ? "filled" : ""}`.trim();
+  token.textContent = fillWord;
+
+  blankSentence.append(document.createTextNode(parts[0]));
+  blankSentence.append(token);
+  blankSentence.append(document.createTextNode(parts[1]));
+}
+
 function buildQuestionBreakdown() {
   return questions
     .map((question, index) => {
@@ -362,6 +409,7 @@ function buildQuestionBreakdown() {
       const removedChoices = questionState.wrongPicks.length
         ? questionState.wrongPicks.map((choiceIndex) => compactText(question.options[choiceIndex])).join(" | ")
         : "None";
+      const sentenceWithBlank = compactText(getSentenceTemplate(question).replace("{blank}", "_____"));
 
       return [
         `Q${index + 1}`,
@@ -370,7 +418,7 @@ function buildQuestionBreakdown() {
         `Points: ${questionState.points}`,
         `Correct answer: ${compactText(question.options[question.correctIndex])}`,
         `Removed choices: ${removedChoices}`,
-        `Prompt: ${compactText(question.prompt)}`
+        `Sentence: ${sentenceWithBlank}`
       ].join(" | ");
     })
     .join("\n");
@@ -529,6 +577,7 @@ function renderQuestion() {
 
   questionSection.textContent = question.section;
   questionText.textContent = question.prompt;
+  renderBlankSentence(question, questionState);
   progressLabel.textContent = `${state.currentIndex + 1} / ${questions.length}`;
   progressFill.style.width = `${(solvedCount / questions.length) * 100}%`;
 
@@ -599,7 +648,8 @@ function buildReview() {
 
     item.innerHTML = `
       <h3>${index + 1}. ${statusLabel}</h3>
-      <p><strong>Question:</strong> ${question.prompt}</p>
+      <p><strong>Instruction:</strong> ${question.prompt}</p>
+      <p><strong>Sentence:</strong> ${getSentenceTemplate(question).replace("{blank}", "_____")}</p>
       <p><strong>Attempts:</strong> ${questionState.attempts}</p>
       <p><strong>Raw points earned:</strong> ${questionState.points}</p>
       <p><strong>Removed wrong choices:</strong> ${removedChoices}</p>

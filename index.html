@@ -40,7 +40,7 @@
         />
         <button id="start-btn" type="button">Start Exam</button>
       </div>
-      <p class="meta">18 questions. Score by attempts: 5, 3, 2, 1 (or 0 after more tries). Final grade is scaled to 60 points.</p>
+      <p class="meta">18 fill-in-the-blank questions with a selectable word bank. Score by attempts: 5, 3, 2, 1 (or 0 after more tries). Final grade is scaled to 60 points.</p>
     </section>
 
     <section id="quiz-screen" class="panel hidden">
@@ -71,7 +71,16 @@
         <p id="question-section" class="question-section">Part A</p>
         <h2 id="question-text"></h2>
         <p id="question-points" class="question-points"></p>
-        <div id="options" class="options" role="group" aria-label="Answer choices"></div>
+        <div class="answer-layout">
+          <div class="blank-panel">
+            <p class="blank-label">Sentence</p>
+            <p id="blank-sentence" class="blank-sentence"></p>
+          </div>
+          <aside class="word-bank" aria-label="Word bank">
+            <p class="word-bank-title">Word Bank</p>
+            <div id="options" class="options" role="group" aria-label="Answer choices"></div>
+          </aside>
+        </div>
         <p id="feedback-line" class="feedback neutral">
           First correct attempt gives 5 points.
         </p>
